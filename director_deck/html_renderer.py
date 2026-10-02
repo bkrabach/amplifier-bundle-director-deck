@@ -393,15 +393,16 @@ def _render_slide_div(slide: "Slide", *, enriched: bool = False) -> str:
 
     # ── QUOTE layout ─────────────────────────────────────────────────────────
     if layout == "quote":
-        # bullets[0] is used as the quote text only when hero_statement is empty
-        # bullets[1] is the attribution
-        # bullets[2:] are supporting paragraphs (context, citation, "what this
-        # means" prose) — previously silently dropped from the wireframe even
-        # though they survived in slide_deck.json, which was confusing to
-        # authors who saw content disappear at Gate 1.
+        # With hero_statement, bullets start with the attribution. Otherwise
+        # bullets[0] supplies the quote and bullets[1] is the attribution.
+        # Keep all remaining supporting paragraphs in either representation.
         quote = slide.hero_statement or (slide.bullets[0] if slide.bullets else slide.title)
-        attribution = slide.bullets[1] if len(slide.bullets) > 1 else ""
-        extras = slide.bullets[2:] if len(slide.bullets) > 2 else []
+        attribution_index = 0 if slide.hero_statement else 1
+        attribution = (
+            slide.bullets[attribution_index]
+            if len(slide.bullets) > attribution_index else ""
+        )
+        extras = slide.bullets[attribution_index + 1:]
         extras_html = "".join(f'<p class="quote-extra">{p}</p>' for p in extras if p)
         return f"""\
 <div class="slide {layout_class}" id="slide-{slide.id}"{bg_style}>
@@ -531,7 +532,8 @@ def render_deck_html(
     Args:
         deck: Validated SlideDeck to render.
         tokens: Design tokens parsed from DESIGN.md.
-        enriched: False = placeholder image areas; True = real <img> tags where assets set.
+        enriched: False = image-brief placeholders; True = full-width text over
+            available backdrops (full_bleed uses its image as a background).
 
     Returns:
         Complete HTML document string.

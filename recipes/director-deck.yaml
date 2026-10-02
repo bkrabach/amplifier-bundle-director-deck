@@ -2,6 +2,10 @@
 # CHANGELOG
 # =============================================================================
 #
+# v0.5.1 (2026-10-02):
+#   - BUGFIX: use quoted heredocs for deterministic Python bash steps so
+#     JavaScript, docstrings, prompts, and OOXML comments cannot break shell transport.
+#
 # v0.5.0 (2026-04-30):
 #   FLEXIBLE INPUT — three input modes; recipe adapts pipeline accordingly.
 #
@@ -96,7 +100,7 @@
 #     * RESULT: run_dir propagates correctly through all four stages.
 
 name: director-deck
-version: "0.5.0"
+version: "0.5.1"
 description: >
   Turn a text prompt OR an existing PPTX into a polished AI-animated deck with
   GPT Image slides and Veo 3.1 video transitions. When a PPTX is supplied the
@@ -185,7 +189,7 @@ stages:
         type: bash
         timeout: 60
         command: |
-          python -c "
+          python - <<'PY_DIRECTOR_DECK_ANALYZE_INPUT'
           import json, sys
           from pathlib import Path
 
@@ -285,7 +289,7 @@ stages:
           out.write_text(json.dumps(output, indent=2, ensure_ascii=False))
           print(f'Extracted {len(slides_data)} slides from {pptx_input}')
           print(f'Written to {out}')
-          "
+          PY_DIRECTOR_DECK_ANALYZE_INPUT
 
       - id: analyze-html-deck
         # Captures each slide from an HTML presentation as a PNG using Playwright.
@@ -307,7 +311,7 @@ stages:
         type: bash
         timeout: 120
         command: |
-          python -c "
+          python - <<'PY_DIRECTOR_DECK_ANALYZE_HTML'
           import json, sys, hashlib
           from io import BytesIO
           from pathlib import Path
@@ -598,7 +602,7 @@ stages:
           out_json.write_text(json.dumps(meta, indent=2, ensure_ascii=False))
           print(f'Captured {captured} slides -> {px_dir}')
           print(f'Metadata + DOM text -> {out_json}')
-          "
+          PY_DIRECTOR_DECK_ANALYZE_HTML
 
       - id: write-content
         # Replaces local agent: ghost-deck-writer
@@ -1222,7 +1226,7 @@ stages:
         type: bash
         timeout: 300
         command: |
-          python -c "
+          python - <<'PY_DIRECTOR_DECK_BUILD_WIREFRAME'
           from pathlib import Path
           from director_deck.schema import SlideDeck, DesignTokens
           from director_deck.html_renderer import write_deck_html
@@ -1234,7 +1238,7 @@ stages:
           write_deck_html(deck, tokens, run / 'deck_wireframe.html', enriched=False)
           build_pptx(deck, tokens, run / 'deck_wireframe.pptx', enriched=False)
           print('done')
-          "
+          PY_DIRECTOR_DECK_BUILD_WIREFRAME
 
     approval:
       required: true
@@ -1465,7 +1469,7 @@ stages:
         type: bash
         timeout: 120
         command: |
-          python -c "
+          python - <<'PY_DIRECTOR_DECK_PREPARE_KEYFRAMES'
           import json
           from pathlib import Path
           from PIL import Image, ImageFilter
@@ -1503,7 +1507,7 @@ stages:
               img.save(kf_dir / src.name, 'PNG')
               print(f'  {src.name}: {sw}x{sh} → {tw}x{th}')
           print('done')
-          "
+          PY_DIRECTOR_DECK_PREPARE_KEYFRAMES
 
       - id: make-transitions
         # Replaces local agent: transition-director
@@ -1703,7 +1707,7 @@ stages:
         type: bash
         timeout: 600
         command: |
-          python -c "
+          python - <<'PY_DIRECTOR_DECK_PROCESS_TRANSITIONS'
           from pathlib import Path
           from director_deck.schema import SlideDeck
           from director_deck.video_processor import process_transition, suggest_transition_duration
@@ -1741,7 +1745,7 @@ stages:
           data['slides'][-1]['transition_to_next'] = None
           (run / 'slide_deck.json').write_text(json.dumps(data, indent=2, ensure_ascii=False))
           print('slide_deck.json updated — transition_to_next now points to processed transitions/')
-          "
+          PY_DIRECTOR_DECK_PROCESS_TRANSITIONS
 
     approval:
       required: true
@@ -1782,7 +1786,7 @@ stages:
         type: bash
         timeout: 300
         command: |
-          python -c "
+          python - <<'PY_DIRECTOR_DECK_ASSEMBLE'
           from pathlib import Path
           from pptx import Presentation
           from pptx.util import Inches
@@ -1880,7 +1884,7 @@ stages:
           _tokens = DesignTokens.from_design_md(run / 'DESIGN.md')
           write_live_html(deck, run, run / 'deck_live.html', tokens=_tokens)
           print(f'HTML player written: {run}/deck_live.html')
-          "
+          PY_DIRECTOR_DECK_ASSEMBLE
 
       - id: report
         type: bash
