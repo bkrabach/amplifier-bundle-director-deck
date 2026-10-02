@@ -61,8 +61,9 @@ Three human approval gates let you review and iterate at each stage before commi
 
 When either `ffmpeg` or `ffprobe` is missing, the Python package lazily downloads
 them through `static-ffmpeg>=3.0` (including Linux ARM64 support). This first-use
-download requires network access. Existing system binaries take precedence;
-install system ffmpeg if the download is blocked or your platform is unsupported.
+download requires network access. A complete existing system pair takes precedence;
+if either binary is missing, the fallback selects its matching static pair.
+Install system ffmpeg if the download is blocked or your platform is unsupported.
 
 ```bash
 # Add Director Deck's image/video tools to your normal Amplifier sessions.

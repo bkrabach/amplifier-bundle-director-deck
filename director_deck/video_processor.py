@@ -60,11 +60,10 @@ _FFMPEG_REMEDIATION = (
 
 
 def _ensure_ffmpeg_on_path() -> None:
-    """Ensure both ffmpeg executables are discoverable without overriding PATH.
+    """Ensure a complete ffmpeg/ffprobe pair is discoverable.
 
-    A system installation always wins.  Only when either executable is absent
-    do we lazily ask ``static-ffmpeg`` to provision its binaries; ``weak=True``
-    appends those paths rather than placing them ahead of the user's PATH.
+    An existing complete pair wins. When either executable is absent,
+    static-ffmpeg provisions a matched pair and prepends its directory to PATH.
     """
     if shutil.which("ffmpeg") and shutil.which("ffprobe"):
         return

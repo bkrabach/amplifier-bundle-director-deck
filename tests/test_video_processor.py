@@ -176,30 +176,35 @@ class TestEnsureFfmpegOnPath:
 
         add_paths.assert_not_called()
 
-    def test_incomplete_path_provisions_static_binaries_without_precedence_change(
-        self, monkeypatch
+    def test_incomplete_system_pair_selects_matching_static_pair(
+        self, monkeypatch, tmp_path
     ):
-        paths = {"ffmpeg": "/system/bin/ffmpeg", "ffprobe": None}
+        from static_ffmpeg import _add_paths
 
-        def add_paths(*, weak):
-            assert weak is True
-            paths["ffprobe"] = "/static/bin/ffprobe"
-
+        system_dir = tmp_path / "system"
+        static_dir = tmp_path / "static"
+        system_dir.mkdir()
+        static_dir.mkdir()
+        for executable in (
+            system_dir / "ffmpeg", static_dir / "ffmpeg", static_dir / "ffprobe"
+        ):
+            executable.write_text("#!/bin/sh\nexit 0\n")
+            executable.chmod(0o755)
+        monkeypatch.setenv("PATH", str(system_dir))
         monkeypatch.setattr(
-            video_processor.shutil,
-            "which",
-            lambda executable: paths[executable],
+            _add_paths,
+            "get_or_fetch_platform_executables_else_raise",
+            lambda **kwargs: (str(static_dir / "ffmpeg"), str(static_dir / "ffprobe")),
         )
-        monkeypatch.setitem(
-            sys.modules,
-            "static_ffmpeg",
-            types.SimpleNamespace(add_paths=Mock(side_effect=add_paths)),
-        )
+        assert shutil.which("ffmpeg") == str(system_dir / "ffmpeg")
+        assert shutil.which("ffprobe") is None
 
         video_processor._ensure_ffmpeg_on_path()
 
-        assert paths["ffmpeg"] == "/system/bin/ffmpeg"
-        assert paths["ffprobe"] == "/static/bin/ffprobe"
+        # Exercise the dependency's real add_paths implementation, not a mock
+        # pretending that weak=True appends to PATH.
+        assert shutil.which("ffmpeg") == str(static_dir / "ffmpeg")
+        assert shutil.which("ffprobe") == str(static_dir / "ffprobe")
 
     def test_repeated_calls_do_not_reprovision_after_binaries_are_available(
         self, monkeypatch

@@ -82,7 +82,7 @@ def test_all_deterministic_python_commands_use_parseable_quoted_heredocs():
         compile(tree, str(recipe_path), "exec")
 
 
-def test_html_capture_has_no_vision_api_dependency():
+def test_html_capture_has_no_direct_vlm_refinement_client():
     main_recipe = yaml.safe_load(RECIPE_FILES[0].read_text(encoding="utf-8"))
 
     assert "vlm_refine" not in main_recipe["context"]
