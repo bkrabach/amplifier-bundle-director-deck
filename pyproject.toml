@@ -12,10 +12,16 @@ dependencies = [
     "python-pptx>=0.6.23",
     "lxml>=4.0",
     "Pillow>=9.0",
-    "playwright>=1.44",
+    # The Chromium 153 build crashes on Linux ARM64; use the verified 140 build.
+    "playwright>=1.55,<1.56; platform_system == 'Linux' and platform_machine == 'aarch64'",
+    "playwright>=1.44; platform_system != 'Linux' or platform_machine != 'aarch64'",
     "pyyaml>=6.0",
+    # static-ffmpeg supplies ffmpeg + ffprobe lazily when both system binaries
+    # are not already on PATH. weak=True preserves system PATH precedence.
+    "static-ffmpeg>=3.0",
 ]
-# Note: ffmpeg and ffprobe must also be available on PATH (used by video_processor.py)
+# video_processor.py uses system ffmpeg/ffprobe when present and otherwise
+# provisions static-ffmpeg lazily.
 
 [project.optional-dependencies]
 dev = [
